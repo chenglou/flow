@@ -3,7 +3,7 @@ var fs = require('fs');
 // var parser = require('babylon');
 var parser = require('./flow_parser_js');
 
-var content = fs.readFileSync('./test.js', {encoding: 'utf8'});
+var content = fs.readFileSync('parser_flow.js', {encoding: 'utf8'});
 
 var now = Date.now();
 var tree = parser.parse(content, {});
