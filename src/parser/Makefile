@@ -36,7 +36,7 @@ build-parser:
 js:
 	cd $(TOP); \
 	ocamlbuild -use-ocamlfind -pkgs js_of_ocaml $(REL_DIR)/flow_parser_js.byte; \
-	js_of_ocaml --opt 3 -o $(REL_DIR)/flow_parser.js $(TOP)/js/caml_hexstring_of_float.js _build/$(REL_DIR)/flow_parser_js.byte; \
+	js_of_ocaml --source-map --opt 3 -o $(REL_DIR)/flow_parser.js $(TOP)/js/caml_hexstring_of_float.js _build/$(REL_DIR)/flow_parser_js.byte; \
 	rm flow_parser_js.byte
 
 test-js: build-parser js

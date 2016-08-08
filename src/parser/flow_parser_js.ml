@@ -8,48 +8,38 @@
  *
  *)
 
+external createRegex : string -> string -> _ = "RegExp" [@@bs.new]
+
 module JsTranslator : sig
   val translation_errors: (Loc.t * Parse_error.t) list ref
   include Estree_translator.Translator
 end = struct
-  type t = Js.Unsafe.any
+  type t
 
   let translation_errors = ref []
-
-  let string x = Js.Unsafe.inject (Js.string x)
-  let bool x = Js.Unsafe.inject (Js.bool x)
-  let obj props = Js.Unsafe.inject (Js.Unsafe.obj props)
-  let array arr = Js.Unsafe.inject (Js.array arr)
-  let number x = Js.Unsafe.inject (Js.number_of_float x)
-  let null = Js.Unsafe.inject Js.null
+  let string = [%bs.raw "function (x) {return x;}"]
+  let bool = [%bs.raw "function (x) {x ? 1 : 0;}"]
+  let obj = [%bs.raw "function(arr) {let ret = {}; arr.forEach(function(a) {ret[a[0]]=a[1];}); return ret}"]
+  let array = [%bs.raw "function (x) {return x;}"]
+  let number = [%bs.raw "function (x) {return x;}"]
+  let null = [%bs.raw "null"]
   let regexp loc pattern flags =
     let regexp = try
-      Js.Unsafe.new_obj (Js.Unsafe.variable "RegExp") [|
-        string pattern;
-        string flags;
-      |]
+      createRegex pattern flags
     with _ ->
       translation_errors := (loc, Parse_error.InvalidRegExp)::!translation_errors;
       (* Invalid RegExp. We already validated the flags, but we've been
        * too lazy to write a JS regexp parser in Ocaml, so we didn't know
        * the pattern was invalid. We'll recover with an empty pattern.
        *)
-      Js.Unsafe.new_obj (Js.Unsafe.variable "RegExp") [|
-        string "";
-        string flags;
-      |]
+      createRegex "" flags
     in
-    Js.Unsafe.inject regexp
+    regexp
 end
 
-let throw e =
-  let fn = (Js.Unsafe.new_obj (Js.Unsafe.variable "Function") [|
-    Js.Unsafe.inject (Js.string "e");
-    Js.Unsafe.inject (Js.string "throw e;");
-  |]) in
-  Js.Unsafe.call fn fn [| e|]
+external throw : _ -> _ = "throw" [@@bs.call]
 
-let parse_options jsopts = Parser_env.(
+(* let parse_options jsopts = Parser_env.(
   let opts = default_parse_options in
 
   let decorators = Js.Unsafe.get jsopts "esproposal_decorators" in
@@ -78,33 +68,25 @@ let parse_options jsopts = Parser_env.(
     else opts in
 
   opts
-)
+) *)
+
+external setRetErrors : _ -> string -> _ -> unit = "" [@@bs.set_index]
+external setEName : _ -> string -> _ -> unit = "" [@@bs.set_index]
+external newError : _ -> _ = "Error" [@@bs.new]
 
 let parse content options =
-  let content = Js.to_string content in
-  let parse_options = Some (parse_options options) in
+  (* let parse_options = Some (parse_options options) in *)
+  let parse_options = None in
   try
     let (ocaml_ast, errors) = Parser_flow.program ~fail:false ~parse_options content in
     JsTranslator.translation_errors := [];
-    let module Translate = Estree_translator.Translate (JsTranslator) in
+    let module Translate = Estree_translator.Translate (JsTranslator)  in
     let ret = Translate.program ocaml_ast in
     let translation_errors = !JsTranslator.translation_errors in
-    Js.Unsafe.set ret "errors" (Translate.errors (errors @ translation_errors));
+    setRetErrors ret "errors" (Translate.errors (errors @ translation_errors));
     ret
   with Parse_error.Error l ->
-    let e = Js.Unsafe.new_obj (Js.Unsafe.variable "Error") [|
-      Js.Unsafe.inject (Js.string ((string_of_int (List.length l))^" errors"));
-    |] in
-    Js.Unsafe.set e "name" ((Js.string "Parse Error"));
+    let e = newError ((string_of_int (List.length l)) ^ " errors") in
+    setEName e "name" "Parse Error";
     ignore (throw e);
-    Js.Unsafe.obj [||]
-
-let exports =
-  if (Js.typeof (Js.Unsafe.js_expr "exports") != Js.string "undefined")
-  then Js.Unsafe.js_expr "exports"
-  else begin
-    let exports = Js.Unsafe.obj [||] in
-    Js.Unsafe.set Js.Unsafe.global "flow" exports;
-    exports
-  end
-let () = Js.Unsafe.set exports "parse" (Js.wrap_callback parse)
+    [%bs.raw "{}"]
