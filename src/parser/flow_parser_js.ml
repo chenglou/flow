@@ -19,7 +19,7 @@ end = struct
   let translation_errors = ref []
   let string = [%bs.raw "function (x) {return x;}"]
   let bool = [%bs.raw "function (x) {x ? 1 : 0;}"]
-  let obj = [%bs.raw "function(arr) {let ret = {}; arr.forEach(function(a) {ret[a[0]]=a[1];}); return ret}"]
+  let obj = [%bs.raw "function(arr) {var ret = {}; arr.forEach(function(a) {ret[a[0]]=a[1];}); return ret}"]
   let array = [%bs.raw "function (x) {return x;}"]
   let number = [%bs.raw "function (x) {return x;}"]
   let null = [%bs.raw "null"]
@@ -37,7 +37,7 @@ end = struct
     regexp
 end
 
-external throw : _ -> _ = "throw" [@@bs.call]
+external throw : _ -> _ = "throw" [@@bs.val]
 
 (* let parse_options jsopts = Parser_env.(
   let opts = default_parse_options in

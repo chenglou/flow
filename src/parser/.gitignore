@@ -3,7 +3,6 @@ parse_test
 lexer_flow.ml
 *.js
 !testParser.js
-!test.js
 perf_test
 pfff_test
 node_modules/

@@ -1,6 +1,7 @@
 var fs = require('fs');
-// var parser = require('./flow_parser');
-// var parser = require('babylon');
+// jspo
+var parser = require('./flow_parser');
+// BS
 var parser = require('./flow_parser_js');
 
 var content = fs.readFileSync('parser_flow.js', {encoding: 'utf8'});
